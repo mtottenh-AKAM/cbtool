@@ -86,3 +86,7 @@ MYSQL_TABLE_OPEN_CACHE = 2000
 MYSQL_ENABLE_PMM_CLIENT = False
 # Connect the Percona Monitoring and Management client to this server IP:port
 MYSQL_PMM_SERVER = 0.0.0.0:80
+
+# Instruct sysbench to measure a specific percentile rather than the default
+(95th percentile latency)
+MEASURE_PERCENTILE=95

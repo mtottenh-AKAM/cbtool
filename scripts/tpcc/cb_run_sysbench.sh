@@ -17,7 +17,7 @@ MYSQL_IPS=`get_ips_from_role mysql`
 LOAD_GENERATOR_TARGET_IP=`get_my_ai_attribute load_generator_target_ip`
 TABLES=`get_my_ai_attribute_with_default tables 1`
 SCALE=`get_my_ai_attribute_with_default scale 100`
-
+MEASURE_PERCENTILE=$(get_my_ai_attribute_with_default measure_percentile 95)
 READ_ONLY=`get_my_ai_attribute_with_default read_only off`
 
 CONN_STR="--mysql-host=${LOAD_GENERATOR_TARGET_IP} --mysql-db=${MYSQL_DATABASE_NAME} --mysql-user=${MYSQL_NONROOT_USER} --mysql-password=${MYSQL_NONROOT_PASSWORD} --db-driver=mysql"
@@ -66,14 +66,14 @@ then
 else
     syslog_netcat "The value of the parameter \"GENERATE_DATA\" is \"false\". Will bypass data generation for the Sysbench load profile \"${LOAD_PROFILE}\""
 fi
-
-CMDLINE="${TPCC_PATH}/tpcc.lua ${CONN_STR} --scale=${SCALE} --tables=${TABLES} --threads=${LOAD_LEVEL} --time=${LOAD_DURATION} run"
+[ -z ${MEASURE_PERCENTILE}  ] && MEASURE_PERCENTILE=95
+CMDLINE="${TPCC_PATH}/tpcc.lua ${CONN_STR} --scale=${SCALE} --tables=${TABLES} --threads=${LOAD_LEVEL} --time=${LOAD_DURATION} --percentile=${MEASURE_PERCENTILE} run"
 execute_load_generator "${CMDLINE}" ${RUN_OUTPUT_FILE} ${LOAD_DURATION}
 
 tp=$(cat $RUN_OUTPUT_FILE | grep transactions | grep per | cut -d '(' -f 2 | cut -d ' ' -f 1)
 queries=$(cat $RUN_OUTPUT_FILE | grep queries: | grep per | cut -d '(' -f 2 | cut -d ' ' -f 1)
 lat=$(cat $RUN_OUTPUT_FILE | grep avg: | awk '{ print $2 }')
-lat_95=$(cat $RUN_OUTPUT_FILE | grep "95th percentile" | awk '{ print $3 }')
+lat_perc=$(cat $RUN_OUTPUT_FILE | grep "${MEASURE_PERCENTILE}th percentile" | awk '{ print $3 }')
 
 ~/cb_report_app_metrics.py \
 datagen_time:$(update_app_datagentime):sec \
@@ -81,7 +81,7 @@ datagen_size:$(update_app_datagensize):records \
 throughput:$tp:tps \
 queries:$queries:qps \
 $(format_for_report latency ${lat}ms) \
-$(format_for_report 95_latency ${lat_95}ms) \
+$(format_for_report ${MEASURE_PERCENTILE}_latency ${lat_perc}ms) \
 $(common_metrics)
 
 unset_load_gen
