@@ -44,22 +44,31 @@ fi
 
 cd $WRK2_DIR
 
-CMDLINE="./wrk -t${THREADS} -d${LOAD_DURATION} -c${CONNECTIONS} -R ${LOAD_LEVEL} -H 'sleep: ${RESPONSEDELAY}' -H 'size: ${RESPONSESIZE}' ${PROTOCOL}://${LOAD_GENERATOR_TARGET_IP}"
+CMDLINE="./wrk -L -t${THREADS} -d${LOAD_DURATION} -c${CONNECTIONS} -R ${LOAD_LEVEL} -H 'sleep: ${RESPONSEDELAY}' -H 'size: ${RESPONSESIZE}' ${PROTOCOL}://${LOAD_GENERATOR_TARGET_IP}"
 
 execute_load_generator "${CMDLINE}" ${RUN_OUTPUT_FILE} ${LOAD_DURATION}
 
 cd ~
+normalize_units() {
+	local var
+	var=$1
+
+	unit=$(echo "${var}" | grep -oE "[a-z]+")
+	val=$(echo "${var}" | sed -e "s/[a-z]\+//g")
+	if [ x"${unit}" == xs ] ; then
+		var=$(echo "${val}*1000" | bc -l)ms
+	elif [ x"${unit}" == xm ] ; then
+		var=$(echo "${val}*1000*60" | bc -l)ms
+	fi
+	echo -n "$var"
+}
 
 lat=$(cat ${RUN_OUTPUT_FILE} | grep Latency | awk '{ print $2 }')
+lat_99=$(cat ${RUN_OUTPUT_FILE} | grep '99.000%' | awk '{print $2}')
 
 # wrk2 likes to switch units on us from milliseconds to seconds. Let's keep it consistent.
-unit=$(echo "${lat}" | grep -oE "[a-z]+")
-val=$(echo "${lat}" | sed -e "s/[a-z]\+//g")
-if [ x"${unit}" == xs ] ; then
-	lat=$(echo "${val}*1000" | bc -l)ms
-elif [ x"${unit}" == xm ] ; then
-	lat=$(echo "${val}*1000*60" | bc -l)ms
-fi
+lat=$(normalize_units "$lat")
+lat_99=$(normalize_units "$lat_99")
 
 tp=$(cat ${RUN_OUTPUT_FILE} | grep Req/Sec | awk '{ print $2 }')
 tp_stddev=$(cat ${RUN_OUTPUT_FILE} | grep Req/Sec | awk '{ print $3 }')
@@ -72,6 +81,7 @@ timeouts=$(cat ${RUN_OUTPUT_FILE} | grep "errors" | awk '{ print $10 }' | grep -
 
 ~/cb_report_app_metrics.py \
 $(format_for_report latency $lat) \
+$(format_for_report 99_latency $lat_99) \
 $(format_for_report throughput $tp) \
 $(format_for_report throughput_stddev ${tp_stddev}) \
 $(format_for_report throughput_total $tptotal) \
