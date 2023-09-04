@@ -21,7 +21,7 @@ CATEGORY = application-stress
 PROFILES = default
 REFERENCE = https://github.com/RedisLabs/memtier_benchmark
 LICENSE = GPL_v2
-REPORTED_METRICS = throughput, latency, bandwidth, errors, completion_time, quiescent_time
+REPORTED_METRICS = throughput, latency, 99_latency, bandwidth, errors, completion_time, quiescent_time
 
 # VApp-specific MANDATORY attributes
 DESCRIPTION =Deploys N redis instances and one instance to execute the "memtier_benchmark".\n
@@ -35,6 +35,17 @@ MEMTIER_START1 = cb_run_memtier.sh
 RATIO = 5:10
 PIPELINE = 1
 CLIENTS_PER_THREAD = 10
+#USE_RANDOM_DATA = true
+# DATA_SIZE_PATTERN=R
+# DATA_SIZE_RANGE=32-32 
+# DATA_OFFSET=0
+# KEY_MINIMUM=0
+# KEY_MAXIMUM=10000000
+# KEY_PATTERN=R:R
+# The following aren't actually used on the R:R key pattern, but can be
+# customized for a gausian (G) key pattern.
+# KEY_STDDEV=0
+# KEY_MEDIAN=0
 
 # Inter-Virtual Application instances (inter-AI) synchronized execution. Entirely optional
 #SYNC_COUNTER_NAME = synchronization_counter
