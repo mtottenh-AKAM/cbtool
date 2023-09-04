@@ -88,5 +88,5 @@ MYSQL_ENABLE_PMM_CLIENT = False
 MYSQL_PMM_SERVER = 0.0.0.0:80
 
 # Instruct sysbench to measure a specific percentile rather than the default
-(95th percentile latency)
+# (95th percentile latency)
 MEASURE_PERCENTILE=95
