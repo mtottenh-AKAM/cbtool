@@ -23,10 +23,12 @@
 var http = require('http');
 var argv = process.argv;
 var port = 80;
+const fs = require('fs');
 
 if (argv.length > 2) {
         port = parseInt(argv[2]);
 }
+
 
 console.log("Requested port: " + port);
 
@@ -55,8 +57,17 @@ function server(req, res) {
         res.writeHead(200);
         setTimeout(sendResponse, sleep, res, httphang, old_sleep, response_size - 1);
 }
-
-var server = http.createServer(server);
-
-server.timeout = 3600000;
-server.listen(port);
+if (port == 443) {
+	http = require('https');
+	const options = {
+		  key: fs.readFileSync('mydomain.key'),
+		  cert: fs.readFileSync('mydomain.crt'),
+	};
+	var server = http.createServer(options, server);
+	server.timeout = 3600000;
+	server.listen(port);
+} else {
+	var server = http.createServer(server);
+	server.timeout = 3600000;
+	server.listen(port);
+}

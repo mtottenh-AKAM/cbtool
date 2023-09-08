@@ -34,7 +34,7 @@ PROTOCOL=$(get_my_ai_attribute_with_default protocol http)
 RESPONSESIZE=$(get_my_ai_attribute_with_default responsesize 0)
 RESPONSEDELAY=$(get_my_ai_attribute_with_default responsedelay 0)
 THREADS=$(get_my_ai_attribute_with_default threads auto)
-
+LOAD_BALANCER=$(get_my_ai_attribute load_balancer)
 
 if [ x"$THREADS" == x"auto" ] ; then
 	NR_CPUS=`cat /proc/cpuinfo | grep processor | wc -l`
@@ -43,6 +43,18 @@ if [ x"$THREADS" == x"auto" ] ; then
 fi
 
 cd $WRK2_DIR
+
+if [ "x${LOAD_BALANCER}" == "x\$False" ]; then
+	if [ "x${PROTOCOL}" == "xhttps" ]; then
+		if [ ! -e "./mydomain.key" ]; then
+			# If using HTTPS without a loadbalancer then generate a cert if necessary.
+		        sudo openssl genrsa -out mydomain.key 2048
+		        sudo openssl req -new -key mydomain.key -out mydomain.csr -batch -verbose
+			sudo openssl x509 -req -days 365 -in mydomain.csr -signkey mydomain.key -out mydomain.crt
+		fi
+	fi
+fi
+
 
 CMDLINE="./wrk -L -t${THREADS} -d${LOAD_DURATION} -c${CONNECTIONS} -R ${LOAD_LEVEL} -H 'sleep: ${RESPONSEDELAY}' -H 'size: ${RESPONSESIZE}' ${PROTOCOL}://${LOAD_GENERATOR_TARGET_IP}"
 
